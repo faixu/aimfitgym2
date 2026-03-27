@@ -1,11 +1,12 @@
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { Send } from "lucide-react";
+import { addLead } from "../services/cmsService";
 
 interface LeadFormData {
   name: string;
   phone: string;
-  goal: string;
+  goal: "Weight Loss" | "Muscle Gain" | "General Fitness";
 }
 
 export default function LeadForm() {
@@ -13,9 +14,7 @@ export default function LeadForm() {
 
   const onSubmit = async (data: LeadFormData) => {
     try {
-      // Mock submission
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      console.log("Lead submitted:", data);
+      await addLead(data);
       toast.success("Success! We'll contact you shortly.");
       reset();
     } catch (error) {

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
   LayoutDashboard, 
@@ -11,26 +11,81 @@ import {
   Edit2,
   CheckCircle,
   Clock,
-  TrendingUp
+  TrendingUp,
+  Save
 } from "lucide-react";
 import { cn } from "../lib/utils";
+import { 
+  subscribeToLeads, 
+  subscribeToSiteContent, 
+  updateSiteContent, 
+  updateLeadStatus,
+  defaultSiteContent 
+} from "../services/cmsService";
+import { Lead, SiteContent } from "../types";
+import { toast } from "sonner";
+
+import { signOut } from "firebase/auth";
+import { auth } from "../firebase";
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState("leads");
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [cmsContent, setCmsContent] = useState<SiteContent>(defaultSiteContent);
+  const [isSaving, setIsSaving] = useState(false);
   const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      toast.success("Logged out.");
+      navigate("/admin");
+    } catch (error) {
+      toast.error("Logout failed.");
+    }
+  };
+
+  useEffect(() => {
+    const unsubLeads = subscribeToLeads(setLeads);
+    const unsubCms = subscribeToSiteContent(setCmsContent);
+    return () => {
+      unsubLeads();
+      unsubCms();
+    };
+  }, []);
+
+  const handleCmsChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setCmsContent(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSaveCms = async () => {
+    setIsSaving(true);
+    try {
+      await updateSiteContent(cmsContent);
+      toast.success("Website content updated successfully!");
+    } catch (error) {
+      toast.error("Failed to update content.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleStatusChange = async (id: string, status: Lead["status"]) => {
+    try {
+      await updateLeadStatus(id, status);
+      toast.success("Lead status updated.");
+    } catch (error) {
+      toast.error("Failed to update status.");
+    }
+  };
 
   const tabs = [
     { id: "leads", name: "Leads", icon: MessageSquare },
-    { id: "content", name: "Content", icon: LayoutDashboard },
+    { id: "content", name: "Content CMS", icon: LayoutDashboard },
     { id: "pricing", name: "Pricing", icon: TrendingUp },
     { id: "testimonials", name: "Testimonials", icon: Users },
     { id: "settings", name: "Settings", icon: Settings },
-  ];
-
-  const mockLeads = [
-    { id: "1", name: "Amit Kumar", phone: "9876543210", goal: "Weight Loss", status: "new", date: "2024-03-26" },
-    { id: "2", name: "Suresh Raina", phone: "9876543211", goal: "Muscle Gain", status: "contacted", date: "2024-03-25" },
-    { id: "3", name: "Pooja Hegde", phone: "9876543212", goal: "General Fitness", status: "joined", date: "2024-03-24" },
   ];
 
   return (
@@ -61,7 +116,7 @@ export default function AdminDashboard() {
                 </button>
               ))}
               <button
-                onClick={() => navigate("/admin")}
+                onClick={handleLogout}
                 className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-red-500 hover:bg-red-500/10 transition-all mt-8"
               >
                 <LogOut className="w-5 h-5" />
@@ -77,14 +132,25 @@ export default function AdminDashboard() {
             <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
               <div>
                 <h1 className="text-3xl font-display font-black tracking-tighter uppercase">
-                  {activeTab} Management
+                  {activeTab === "content" ? "Website CMS" : activeTab + " Management"}
                 </h1>
                 <p className="text-subtext text-sm mt-1">Manage your gym's {activeTab} data dynamically.</p>
               </div>
-              <button className="bg-white text-black px-6 py-3 rounded-xl font-bold text-sm flex items-center gap-2 hover:bg-accent hover:text-white transition-all glow-red-hover">
-                <Plus className="w-4 h-4" />
-                ADD NEW
-              </button>
+              {activeTab === "content" ? (
+                <button 
+                  onClick={handleSaveCms}
+                  disabled={isSaving}
+                  className="bg-accent text-white px-8 py-3 rounded-xl font-bold text-sm flex items-center gap-2 hover:scale-105 transition-all glow-red disabled:opacity-50"
+                >
+                  <Save className="w-4 h-4" />
+                  {isSaving ? "SAVING..." : "SAVE CHANGES"}
+                </button>
+              ) : (
+                <button className="bg-white text-black px-6 py-3 rounded-xl font-bold text-sm flex items-center gap-2 hover:bg-accent hover:text-white transition-all glow-red-hover">
+                  <Plus className="w-4 h-4" />
+                  ADD NEW
+                </button>
+              )}
             </header>
 
             {/* Leads Table */}
@@ -102,7 +168,7 @@ export default function AdminDashboard() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/5">
-                    {mockLeads.map((lead) => (
+                    {leads.map((lead) => (
                       <tr key={lead.id} className="group hover:bg-white/5 transition-colors">
                         <td className="py-6 font-bold">{lead.name}</td>
                         <td className="py-6 text-subtext">{lead.phone}</td>
@@ -112,25 +178,19 @@ export default function AdminDashboard() {
                           </span>
                         </td>
                         <td className="py-6">
-                          <div className="flex items-center gap-2">
-                            {lead.status === "new" && <Clock className="w-4 h-4 text-yellow-500" />}
-                            {lead.status === "contacted" && <Edit2 className="w-4 h-4 text-blue-500" />}
-                            {lead.status === "joined" && <CheckCircle className="w-4 h-4 text-green-500" />}
-                            <span className={cn(
-                              "text-xs font-bold uppercase tracking-widest",
-                              lead.status === "new" ? "text-yellow-500" : 
-                              lead.status === "contacted" ? "text-blue-500" : "text-green-500"
-                            )}>
-                              {lead.status}
-                            </span>
-                          </div>
+                          <select 
+                            value={lead.status}
+                            onChange={(e) => handleStatusChange(lead.id, e.target.value as Lead["status"])}
+                            className="bg-background border border-white/10 rounded-lg px-2 py-1 text-xs font-bold uppercase tracking-widest outline-none focus:border-accent"
+                          >
+                            <option value="new">New</option>
+                            <option value="contacted">Contacted</option>
+                            <option value="joined">Joined</option>
+                          </select>
                         </td>
-                        <td className="py-6 text-subtext text-sm">{lead.date}</td>
+                        <td className="py-6 text-subtext text-sm">{new Date(lead.createdAt).toLocaleDateString()}</td>
                         <td className="py-6 text-right">
                           <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button className="p-2 hover:bg-white/10 rounded-lg text-subtext hover:text-white transition-colors">
-                              <Edit2 className="w-4 h-4" />
-                            </button>
                             <button className="p-2 hover:bg-red-500/20 rounded-lg text-red-500 transition-colors">
                               <Trash2 className="w-4 h-4" />
                             </button>
@@ -138,13 +198,126 @@ export default function AdminDashboard() {
                         </td>
                       </tr>
                     ))}
+                    {leads.length === 0 && (
+                      <tr>
+                        <td colSpan={6} className="py-12 text-center text-subtext italic">No leads found yet.</td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>
             )}
 
+            {/* CMS Content Tab */}
+            {activeTab === "content" && (
+              <div className="grid md:grid-cols-2 gap-8">
+                <div className="space-y-6">
+                  <h3 className="text-lg font-bold border-b border-white/5 pb-2">Hero Section</h3>
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-widest text-subtext mb-2">Hero Title</label>
+                    <input
+                      name="heroTitle"
+                      value={cmsContent.heroTitle}
+                      onChange={handleCmsChange}
+                      className="w-full bg-background border border-white/10 rounded-xl px-4 py-3 focus:border-accent outline-none transition-colors"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-widest text-subtext mb-2">Hero Subtitle</label>
+                    <textarea
+                      name="heroSubtitle"
+                      value={cmsContent.heroSubtitle}
+                      onChange={handleCmsChange}
+                      rows={3}
+                      className="w-full bg-background border border-white/10 rounded-xl px-4 py-3 focus:border-accent outline-none transition-colors resize-none"
+                    />
+                  </div>
+
+                  <h3 className="text-lg font-bold border-b border-white/5 pb-2 pt-4">About Section</h3>
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-widest text-subtext mb-2">About Title</label>
+                    <input
+                      name="aboutTitle"
+                      value={cmsContent.aboutTitle}
+                      onChange={handleCmsChange}
+                      className="w-full bg-background border border-white/10 rounded-xl px-4 py-3 focus:border-accent outline-none transition-colors"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-widest text-subtext mb-2">About Content</label>
+                    <textarea
+                      name="aboutContent"
+                      value={cmsContent.aboutContent}
+                      onChange={handleCmsChange}
+                      rows={4}
+                      className="w-full bg-background border border-white/10 rounded-xl px-4 py-3 focus:border-accent outline-none transition-colors resize-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-6">
+                  <h3 className="text-lg font-bold border-b border-white/5 pb-2">Contact & Footer</h3>
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-widest text-subtext mb-2">WhatsApp Number</label>
+                    <input
+                      name="whatsappNumber"
+                      value={cmsContent.whatsappNumber}
+                      onChange={handleCmsChange}
+                      className="w-full bg-background border border-white/10 rounded-xl px-4 py-3 focus:border-accent outline-none transition-colors"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-widest text-subtext mb-2">WhatsApp Message</label>
+                    <input
+                      name="whatsappMessage"
+                      value={cmsContent.whatsappMessage}
+                      onChange={handleCmsChange}
+                      className="w-full bg-background border border-white/10 rounded-xl px-4 py-3 focus:border-accent outline-none transition-colors"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-widest text-subtext mb-2">Phone Display</label>
+                    <input
+                      name="phone"
+                      value={cmsContent.phone}
+                      onChange={handleCmsChange}
+                      className="w-full bg-background border border-white/10 rounded-xl px-4 py-3 focus:border-accent outline-none transition-colors"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-widest text-subtext mb-2">Address</label>
+                    <input
+                      name="address"
+                      value={cmsContent.address}
+                      onChange={handleCmsChange}
+                      className="w-full bg-background border border-white/10 rounded-xl px-4 py-3 focus:border-accent outline-none transition-colors"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-widest text-subtext mb-2">Opening Hours</label>
+                    <textarea
+                      name="openingHours"
+                      value={cmsContent.openingHours}
+                      onChange={handleCmsChange}
+                      rows={2}
+                      className="w-full bg-background border border-white/10 rounded-xl px-4 py-3 focus:border-accent outline-none transition-colors resize-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-widest text-subtext mb-2">Google Maps Embed URL</label>
+                    <input
+                      name="googleMapsUrl"
+                      value={cmsContent.googleMapsUrl}
+                      onChange={handleCmsChange}
+                      className="w-full bg-background border border-white/10 rounded-xl px-4 py-3 focus:border-accent outline-none transition-colors"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Other tabs placeholders */}
-            {activeTab !== "leads" && (
+            {activeTab !== "leads" && activeTab !== "content" && (
               <div className="flex flex-col items-center justify-center py-24 text-center">
                 <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mb-6">
                   <Settings className="w-10 h-10 text-subtext" />

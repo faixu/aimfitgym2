@@ -1,7 +1,17 @@
 import { motion } from "motion/react";
 import { ArrowRight, CheckCircle2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { subscribeToSiteContent, defaultSiteContent } from "../services/cmsService";
+import { SiteContent } from "../types";
 
 export default function Hero() {
+  const [content, setContent] = useState<SiteContent>(defaultSiteContent);
+
+  useEffect(() => {
+    const unsubscribe = subscribeToSiteContent(setContent);
+    return () => unsubscribe();
+  }, []);
+
   return (
     <section id="home" className="relative h-screen flex items-center justify-center overflow-hidden pt-20">
       {/* Background with Overlay */}
@@ -24,13 +34,16 @@ export default function Hero() {
           <span className="inline-block px-4 py-1.5 bg-accent/10 border border-accent/20 rounded-full text-accent text-xs font-bold tracking-widest uppercase mb-6">
             Best Gym in India
           </span>
-          <h1 className="text-5xl md:text-8xl font-display font-black tracking-tighter leading-none mb-6">
-            TRANSFORM YOUR BODY <br />
-            <span className="text-accent">AT AIMFIT GYM</span>
+          <h1 className="text-5xl md:text-8xl font-display font-black tracking-tighter leading-none mb-6 uppercase">
+            {content.heroTitle.split(" ").map((word, i) => (
+              <span key={i} className={word === "AIMFIT" || word === "GYM" ? "text-accent" : ""}>
+                {word}{" "}
+                {i === 2 ? <br /> : ""}
+              </span>
+            ))}
           </h1>
           <p className="max-w-2xl mx-auto text-lg md:text-xl text-subtext mb-10 leading-relaxed">
-            Build strength, lose fat, and gain confidence with expert guidance. 
-            Affordable, professional, and results-driven training for everyone.
+            {content.heroSubtitle}
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">

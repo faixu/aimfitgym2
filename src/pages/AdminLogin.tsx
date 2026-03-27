@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Lock, User, Dumbbell } from "lucide-react";
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { auth } from "../firebase";
 
 export default function AdminLogin() {
   const [email, setEmail] = useState("");
@@ -14,15 +16,12 @@ export default function AdminLogin() {
     setIsLoading(true);
     
     try {
-      // Mock login for now
-      if (email === "admin@aimfit.in" && password === "admin123") {
-        toast.success("Login successful!");
-        navigate("/admin/dashboard");
-      } else {
-        toast.error("Invalid credentials.");
-      }
-    } catch (error) {
-      toast.error("Login failed.");
+      await signInWithEmailAndPassword(auth, email, password);
+      toast.success("Login successful!");
+      navigate("/admin/dashboard");
+    } catch (error: any) {
+      console.error("Login error:", error);
+      toast.error(error.message || "Invalid credentials.");
     } finally {
       setIsLoading(false);
     }

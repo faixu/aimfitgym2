@@ -1,7 +1,17 @@
 import { Phone, Mail, MapPin, Clock } from "lucide-react";
 import LeadForm from "./LeadForm";
+import { useEffect, useState } from "react";
+import { subscribeToSiteContent, defaultSiteContent } from "../services/cmsService";
+import { SiteContent } from "../types";
 
 export default function Contact() {
+  const [content, setContent] = useState<SiteContent>(defaultSiteContent);
+
+  useEffect(() => {
+    const unsubscribe = subscribeToSiteContent(setContent);
+    return () => unsubscribe();
+  }, []);
+
   return (
     <section id="contact" className="py-24 bg-secondary/30">
       <div className="max-w-7xl mx-auto px-6">
@@ -26,7 +36,7 @@ export default function Contact() {
                 </div>
                 <div>
                   <h4 className="font-bold mb-1">Call Us</h4>
-                  <p className="text-subtext">+91 98765 43210</p>
+                  <p className="text-subtext">{content.phone}</p>
                 </div>
               </div>
 
@@ -36,7 +46,7 @@ export default function Contact() {
                 </div>
                 <div>
                   <h4 className="font-bold mb-1">Our Location</h4>
-                  <p className="text-subtext">123 Fitness Street, Sector 45, Gurgaon, Haryana, India</p>
+                  <p className="text-subtext">{content.address}</p>
                 </div>
               </div>
 
@@ -46,7 +56,7 @@ export default function Contact() {
                 </div>
                 <div>
                   <h4 className="font-bold mb-1">Opening Hours</h4>
-                  <p className="text-subtext">Mon - Sat: 5:00 AM - 10:00 PM <br /> Sun: 7:00 AM - 12:00 PM</p>
+                  <p className="text-subtext whitespace-pre-line">{content.openingHours}</p>
                 </div>
               </div>
             </div>
@@ -54,7 +64,7 @@ export default function Contact() {
             {/* Map Placeholder */}
             <div className="mt-12 rounded-3xl overflow-hidden h-64 border border-white/10 grayscale hover:grayscale-0 transition-all duration-500">
               <iframe
-                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3506.2233913120413!2d77.0330710761314!3d28.50290038933066!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x390d19d582e38859%3A0x2cf5e48537121542!2sGurugram%2C%20Haryana!5e0!3m2!1sen!2sin!4v1711530000000!5m2!1sen!2sin"
+                src={content.googleMapsUrl}
                 width="100%"
                 height="100%"
                 style={{ border: 0 }}

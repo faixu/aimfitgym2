@@ -1,6 +1,16 @@
 import { Dumbbell, Target, Users, ShieldCheck } from "lucide-react";
+import { useEffect, useState } from "react";
+import { subscribeToSiteContent, defaultSiteContent } from "../services/cmsService";
+import { SiteContent } from "../types";
 
 export default function About() {
+  const [content, setContent] = useState<SiteContent>(defaultSiteContent);
+
+  useEffect(() => {
+    const unsubscribe = subscribeToSiteContent(setContent);
+    return () => unsubscribe();
+  }, []);
+
   const features = [
     {
       icon: Users,
@@ -32,14 +42,11 @@ export default function About() {
             <span className="text-accent font-bold tracking-widest uppercase text-sm mb-4 block">
               About AimFit
             </span>
-            <h2 className="text-4xl md:text-6xl font-display font-black mb-6 leading-tight">
-              BUILT FOR RESULTS, <br />
-              <span className="text-accent">NOT EXCUSES</span>
+            <h2 className="text-4xl md:text-6xl font-display font-black mb-6 leading-tight uppercase">
+              {content.aboutTitle}
             </h2>
             <p className="text-lg text-subtext mb-8 leading-relaxed">
-              AimFit Gym is dedicated to helping you achieve real fitness results 
-              through discipline, consistency, and expert support. We don't just 
-              provide equipment; we provide a roadmap to a better you.
+              {content.aboutContent}
             </p>
             
             <div className="grid sm:grid-cols-2 gap-6">

@@ -1,12 +1,21 @@
 import { MessageCircle } from "lucide-react";
+import { useEffect, useState } from "react";
+import { subscribeToSiteContent, defaultSiteContent } from "../services/cmsService";
+import { SiteContent } from "../types";
 
 export default function WhatsAppButton() {
-  const whatsappNumber = "919876543210"; // Placeholder
-  const message = encodeURIComponent("Hi AimFit Gym! I'm interested in joining. Can you help me?");
+  const [content, setContent] = useState<SiteContent>(defaultSiteContent);
+
+  useEffect(() => {
+    const unsubscribe = subscribeToSiteContent(setContent);
+    return () => unsubscribe();
+  }, []);
+
+  const message = encodeURIComponent(content.whatsappMessage);
   
   return (
     <a
-      href={`https://wa.me/${whatsappNumber}?text=${message}`}
+      href={`https://wa.me/${content.whatsappNumber}?text=${message}`}
       target="_blank"
       rel="noopener noreferrer"
       className="fixed bottom-6 right-6 z-50 p-4 bg-[#25D366] rounded-full shadow-2xl hover:scale-110 transition-transform active:scale-95 group"
