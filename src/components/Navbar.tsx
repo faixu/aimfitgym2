@@ -37,12 +37,12 @@ export default function Navbar() {
   };
 
   const navLinks = [
-    { name: "Home", href: "#home" },
-    { name: "About", href: "#about" },
-    { name: "Services", href: "#services" },
-    { name: "Pricing", href: "#pricing" },
-    { name: "Trainers", href: "#trainers" },
-    { name: "Contact", href: "#contact" },
+    { name: "Home", href: "/#home" },
+    { name: "About", href: "/#about" },
+    { name: "Gallery", href: "/gallery" },
+    { name: "Pricing", href: "/#pricing" },
+    { name: "Trainers", href: "/#trainers" },
+    { name: "Contact", href: "/#contact" },
   ];
 
   return (
@@ -65,20 +65,20 @@ export default function Navbar() {
         {/* Desktop Nav */}
         <div className="hidden md:flex items-center gap-8">
           {navLinks.map((link) => (
-            <a
+            <Link
               key={link.name}
-              href={link.href}
+              to={link.href}
               className="text-sm font-medium text-subtext hover:text-white transition-colors"
             >
               {link.name}
-            </a>
+            </Link>
           ))}
-          <a
-            href="#pricing"
+          <Link
+            to="/#pricing"
             className="bg-accent px-6 py-2 rounded-full text-sm font-bold glow-red hover:scale-105 transition-all active:scale-95"
           >
             JOIN NOW
-          </a>
+          </Link>
         </div>
 
         {/* Mobile Toggle */}
@@ -94,22 +94,22 @@ export default function Navbar() {
       {isMenuOpen && (
         <div className="absolute top-full left-0 right-0 bg-secondary border-b border-white/10 p-6 flex flex-col gap-4 md:hidden animate-in slide-in-from-top duration-300">
           {navLinks.map((link) => (
-            <a
+            <Link
               key={link.name}
-              href={link.href}
+              to={link.href}
               className="text-lg font-medium text-subtext hover:text-white transition-colors"
               onClick={() => setIsMenuOpen(false)}
             >
               {link.name}
-            </a>
+            </Link>
           ))}
-          <a
-            href="#pricing"
+          <Link
+            to="/#pricing"
             className="bg-accent px-6 py-3 rounded-xl text-center font-bold glow-red"
             onClick={() => setIsMenuOpen(false)}
           >
             JOIN NOW
-          </a>
+          </Link>
         </div>
       )}
     </nav>

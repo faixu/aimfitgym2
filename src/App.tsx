@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { useEffect, useState } from "react";
 import Home from "./pages/Home";
+import Gallery from "./pages/Gallery";
 import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
 import Navbar from "./components/Navbar";
@@ -16,6 +17,7 @@ export default function App() {
         <main>
           <Routes>
             <Route path="/" element={<Home />} />
+            <Route path="/gallery" element={<Gallery />} />
             <Route path="/admin" element={<AdminLogin />} />
             <Route path="/admin/dashboard" element={<AdminDashboard />} />
           </Routes>

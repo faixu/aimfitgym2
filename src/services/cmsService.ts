@@ -11,8 +11,14 @@ import {
   updateDoc,
   getDocFromServer
 } from "firebase/firestore";
-import { db, auth } from "../firebase";
-import { SiteContent, PricingPlan, Testimonial, Trainer, Lead } from "../types";
+import { 
+  ref, 
+  uploadBytes, 
+  getDownloadURL, 
+  deleteObject 
+} from "firebase/storage";
+import { db, auth, storage } from "../firebase";
+import { SiteContent, PricingPlan, Testimonial, Trainer, Lead, GalleryImage } from "../types";
 
 // Error handling helper
 enum OperationType {
@@ -101,6 +107,46 @@ export async function updateLeadStatus(id: string, status: Lead["status"]) {
     await updateDoc(doc(db, LEADS_COLLECTION, id), { status });
   } catch (error) {
     handleFirestoreError(error, OperationType.UPDATE, `${LEADS_COLLECTION}/${id}`);
+  }
+}
+
+// --- Gallery ---
+const GALLERY_COLLECTION = "gallery";
+
+export function subscribeToGallery(callback: (images: GalleryImage[]) => void) {
+  const q = query(collection(db, GALLERY_COLLECTION), orderBy("createdAt", "desc"));
+  return onSnapshot(q, (snapshot) => {
+    const images = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as GalleryImage));
+    callback(images);
+  }, (error) => handleFirestoreError(error, OperationType.LIST, GALLERY_COLLECTION));
+}
+
+export async function uploadGalleryImage(file: File, title: string) {
+  try {
+    const storageRef = ref(storage, `gallery/${Date.now()}_${file.name}`);
+    await uploadBytes(storageRef, file);
+    const url = await getDownloadURL(storageRef);
+    
+    await addDoc(collection(db, GALLERY_COLLECTION), {
+      url,
+      title,
+      createdAt: new Date().toISOString()
+    });
+  } catch (error) {
+    handleFirestoreError(error, OperationType.CREATE, GALLERY_COLLECTION);
+  }
+}
+
+export async function deleteGalleryImage(id: string, url: string) {
+  try {
+    // Delete from Firestore
+    await deleteDoc(doc(db, GALLERY_COLLECTION, id));
+    
+    // Delete from Storage
+    const storageRef = ref(storage, url);
+    await deleteObject(storageRef);
+  } catch (error) {
+    handleFirestoreError(error, OperationType.DELETE, GALLERY_COLLECTION);
   }
 }
 

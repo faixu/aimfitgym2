@@ -42,6 +42,12 @@ service cloud.firestore {
       allow read, update, delete: if isAdmin();
     }
 
+    // Gallery: Publicly readable, Admin writable
+    match /gallery/{imageId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
     // Users: Private data
     match /users/{userId} {
       allow read, write: if request.auth.uid == userId || isAdmin();

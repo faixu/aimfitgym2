@@ -12,7 +12,10 @@ import {
   CheckCircle,
   Clock,
   TrendingUp,
-  Save
+  Save,
+  Camera,
+  Upload,
+  X
 } from "lucide-react";
 import { cn } from "../lib/utils";
 import { 
@@ -20,9 +23,12 @@ import {
   subscribeToSiteContent, 
   updateSiteContent, 
   updateLeadStatus,
+  subscribeToGallery,
+  uploadGalleryImage,
+  deleteGalleryImage,
   defaultSiteContent 
 } from "../services/cmsService";
-import { Lead, SiteContent } from "../types";
+import { Lead, SiteContent, GalleryImage } from "../types";
 import { toast } from "sonner";
 
 import { signOut } from "firebase/auth";
@@ -32,7 +38,12 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState("leads");
   const [leads, setLeads] = useState<Lead[]>([]);
   const [cmsContent, setCmsContent] = useState<SiteContent>(defaultSiteContent);
+  const [galleryImages, setGalleryImages] = useState<GalleryImage[]>([]);
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [newImageTitle, setNewImageTitle] = useState("");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const navigate = useNavigate();
 
   const handleLogout = async () => {
@@ -48,9 +59,11 @@ export default function AdminDashboard() {
   useEffect(() => {
     const unsubLeads = subscribeToLeads(setLeads);
     const unsubCms = subscribeToSiteContent(setCmsContent);
+    const unsubGallery = subscribeToGallery(setGalleryImages);
     return () => {
       unsubLeads();
       unsubCms();
+      unsubGallery();
     };
   }, []);
 
@@ -80,9 +93,47 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setSelectedFile(e.target.files[0]);
+    }
+  };
+
+  const handleUploadImage = async () => {
+    if (!selectedFile || !newImageTitle) {
+      toast.error("Please provide both a title and an image.");
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      await uploadGalleryImage(selectedFile, newImageTitle);
+      toast.success("Image uploaded successfully!");
+      setShowUploadModal(false);
+      setNewImageTitle("");
+      setSelectedFile(null);
+    } catch (error) {
+      toast.error("Failed to upload image.");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleDeleteImage = async (id: string, url: string) => {
+    if (!confirm("Are you sure you want to delete this image?")) return;
+    
+    try {
+      await deleteGalleryImage(id, url);
+      toast.success("Image deleted.");
+    } catch (error) {
+      toast.error("Failed to delete image.");
+    }
+  };
+
   const tabs = [
     { id: "leads", name: "Leads", icon: MessageSquare },
     { id: "content", name: "Content CMS", icon: LayoutDashboard },
+    { id: "gallery", name: "Gallery", icon: Camera },
     { id: "pricing", name: "Pricing", icon: TrendingUp },
     { id: "testimonials", name: "Testimonials", icon: Users },
     { id: "settings", name: "Settings", icon: Settings },
@@ -145,6 +196,14 @@ export default function AdminDashboard() {
                   <Save className="w-4 h-4" />
                   {isSaving ? "SAVING..." : "SAVE CHANGES"}
                 </button>
+              ) : activeTab === "gallery" ? (
+                <button 
+                  onClick={() => setShowUploadModal(true)}
+                  className="bg-accent text-white px-6 py-3 rounded-xl font-bold text-sm flex items-center gap-2 hover:scale-105 transition-all glow-red"
+                >
+                  <Upload className="w-4 h-4" />
+                  UPLOAD PHOTO
+                </button>
               ) : (
                 <button className="bg-white text-black px-6 py-3 rounded-xl font-bold text-sm flex items-center gap-2 hover:bg-accent hover:text-white transition-all glow-red-hover">
                   <Plus className="w-4 h-4" />
@@ -205,6 +264,36 @@ export default function AdminDashboard() {
                     )}
                   </tbody>
                 </table>
+              </div>
+            )}
+
+            {/* Gallery Tab */}
+            {activeTab === "gallery" && (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                {galleryImages.map((image) => (
+                  <div key={image.id} className="group relative aspect-square rounded-2xl overflow-hidden border border-white/5 bg-background">
+                    <img 
+                      src={image.url} 
+                      alt={image.title} 
+                      className="w-full h-full object-cover"
+                      referrerPolicy="no-referrer"
+                    />
+                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center p-4 text-center">
+                      <p className="text-xs font-bold mb-4">{image.title}</p>
+                      <button 
+                        onClick={() => handleDeleteImage(image.id, image.url)}
+                        className="p-2 bg-red-500 text-white rounded-lg hover:scale-110 transition-transform"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+                {galleryImages.length === 0 && (
+                  <div className="col-span-full py-24 text-center text-subtext italic">
+                    No gallery images uploaded yet.
+                  </div>
+                )}
               </div>
             )}
 
@@ -329,6 +418,73 @@ export default function AdminDashboard() {
           </div>
         </main>
       </div>
+
+      {/* Upload Modal */}
+      {showUploadModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setShowUploadModal(false)}></div>
+          <div className="relative bg-secondary border border-white/10 rounded-[2rem] p-8 w-full max-w-md shadow-2xl">
+            <button 
+              onClick={() => setShowUploadModal(false)}
+              className="absolute top-6 right-6 p-2 hover:bg-white/5 rounded-full transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            
+            <h3 className="text-2xl font-display font-black tracking-tighter mb-6 uppercase">Upload to Gallery</h3>
+            
+            <div className="space-y-6">
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-widest text-subtext mb-2">Photo Title</label>
+                <input
+                  type="text"
+                  value={newImageTitle}
+                  onChange={(e) => setNewImageTitle(e.target.value)}
+                  placeholder="e.g. Cardio Zone"
+                  className="w-full bg-background border border-white/10 rounded-xl px-4 py-3 focus:border-accent outline-none transition-colors"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-widest text-subtext mb-2">Select Image</label>
+                <div className="relative">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileChange}
+                    className="hidden"
+                    id="gallery-upload"
+                  />
+                  <label 
+                    htmlFor="gallery-upload"
+                    className="flex flex-col items-center justify-center w-full aspect-video bg-background border-2 border-dashed border-white/10 rounded-2xl cursor-pointer hover:border-accent transition-colors group"
+                  >
+                    {selectedFile ? (
+                      <div className="flex flex-col items-center p-4">
+                        <CheckCircle className="w-8 h-8 text-green-500 mb-2" />
+                        <p className="text-xs font-bold truncate max-w-[200px]">{selectedFile.name}</p>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center">
+                        <Upload className="w-8 h-8 text-subtext group-hover:text-accent mb-2 transition-colors" />
+                        <p className="text-xs font-bold text-subtext">Click to browse</p>
+                      </div>
+                    )}
+                  </label>
+                </div>
+              </div>
+              
+              <button
+                onClick={handleUploadImage}
+                disabled={isUploading || !selectedFile || !newImageTitle}
+                className="w-full bg-accent text-white py-4 rounded-xl font-bold uppercase tracking-widest glow-red hover:scale-[1.02] transition-all disabled:opacity-50 disabled:hover:scale-100"
+              >
+                {isUploading ? "UPLOADING..." : "START UPLOAD"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

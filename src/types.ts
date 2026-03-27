@@ -45,3 +45,10 @@ export interface Lead {
   createdAt: any;
   status: "new" | "contacted" | "joined";
 }
+
+export interface GalleryImage {
+  id: string;
+  url: string;
+  title: string;
+  createdAt: string;
+}
