@@ -1,11 +1,13 @@
-import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { Menu, X, Dumbbell } from "lucide-react";
 import { cn } from "../lib/utils";
 
 export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [logoClickCount, setLogoClickCount] = useState(0);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -14,6 +16,25 @@ export default function Navbar() {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  // Reset click count after 2 seconds of inactivity
+  useEffect(() => {
+    if (logoClickCount > 0) {
+      const timer = setTimeout(() => setLogoClickCount(0), 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [logoClickCount]);
+
+  const handleLogoClick = (e: React.MouseEvent) => {
+    const newCount = logoClickCount + 1;
+    if (newCount >= 5) {
+      e.preventDefault();
+      setLogoClickCount(0);
+      navigate("/admin");
+    } else {
+      setLogoClickCount(newCount);
+    }
+  };
 
   const navLinks = [
     { name: "Home", href: "#home" },
@@ -32,7 +53,7 @@ export default function Navbar() {
       )}
     >
       <div className="max-w-7xl mx-auto flex items-center justify-between">
-        <Link to="/" className="flex items-center gap-2 group">
+        <Link to="/" onClick={handleLogoClick} className="flex items-center gap-2 group">
           <div className="p-2 bg-accent rounded-lg glow-red group-hover:scale-110 transition-transform">
             <Dumbbell className="w-6 h-6 text-white" />
           </div>
