@@ -1,0 +1,95 @@
+{
+  "entities": {
+    "SiteContent": {
+      "title": "Site Content",
+      "description": "Global website text and configuration",
+      "type": "object",
+      "properties": {
+        "heroTitle": { "type": "string" },
+        "heroSubtitle": { "type": "string" },
+        "aboutTitle": { "type": "string" },
+        "aboutContent": { "type": "string" },
+        "whatsappNumber": { "type": "string" },
+        "whatsappMessage": { "type": "string" },
+        "address": { "type": "string" },
+        "phone": { "type": "string" },
+        "openingHours": { "type": "string" },
+        "googleMapsUrl": { "type": "string" }
+      },
+      "required": ["heroTitle", "heroSubtitle", "whatsappNumber"]
+    },
+    "PricingPlan": {
+      "title": "Pricing Plan",
+      "description": "Gym membership plans",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "price": { "type": "number" },
+        "features": { "type": "array", "items": { "type": "string" } },
+        "isPopular": { "type": "boolean" },
+        "order": { "type": "integer" }
+      },
+      "required": ["name", "price", "features"]
+    },
+    "Testimonial": {
+      "title": "Testimonial",
+      "description": "Member reviews and transformations",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "content": { "type": "string" },
+        "rating": { "type": "integer" },
+        "image": { "type": "string" },
+        "transformationImage": { "type": "string" }
+      },
+      "required": ["name", "content", "rating"]
+    },
+    "Trainer": {
+      "title": "Trainer",
+      "description": "Gym trainer profiles",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "specialty": { "type": "string" },
+        "experience": { "type": "string" },
+        "image": { "type": "string" }
+      },
+      "required": ["name", "specialty", "image"]
+    },
+    "Lead": {
+      "title": "Lead",
+      "description": "Contact form submissions",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "phone": { "type": "string" },
+        "goal": { "type": "string", "enum": ["Weight Loss", "Muscle Gain", "General Fitness"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "status": { "type": "string", "enum": ["new", "contacted", "joined"] }
+      },
+      "required": ["name", "phone", "goal", "createdAt", "status"]
+    }
+  },
+  "firestore": {
+    "/siteContent/main": {
+      "schema": "SiteContent",
+      "description": "Main site content"
+    },
+    "/pricingPlans/{planId}": {
+      "schema": "PricingPlan",
+      "description": "Membership plans"
+    },
+    "/testimonials/{testimonialId}": {
+      "schema": "Testimonial",
+      "description": "Member testimonials"
+    },
+    "/trainers/{trainerId}": {
+      "schema": "Trainer",
+      "description": "Gym trainers"
+    },
+    "/leads/{leadId}": {
+      "schema": "Lead",
+      "description": "Inbound leads"
+    }
+  }
+}

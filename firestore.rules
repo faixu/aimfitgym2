@@ -1,0 +1,50 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && 
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+         request.auth.token.email == "Flust786@gmail.com");
+    }
+
+    // Site Content: Publicly readable, Admin writable
+    match /siteContent/{document} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Pricing Plans: Publicly readable, Admin writable
+    match /pricingPlans/{planId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Testimonials: Publicly readable, Admin writable
+    match /testimonials/{testimonialId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Trainers: Publicly readable, Admin writable
+    match /trainers/{trainerId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Leads: Anyone can create, only Admin can read/update/delete
+    match /leads/{leadId} {
+      allow create: if true;
+      allow read, update, delete: if isAdmin();
+    }
+
+    // Users: Private data
+    match /users/{userId} {
+      allow read, write: if request.auth.uid == userId || isAdmin();
+    }
+  }
+}
